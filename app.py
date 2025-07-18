@@ -1,69 +1,71 @@
 import streamlit as st
-import openai
 from PIL import Image, ImageDraw, ImageFont
+from openai import OpenAI
 import io
 
-# Set up the page
-st.set_page_config(page_title="Brand Name & Logo Generator", layout="centered")
+# Load API key from secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# Load your API key from Streamlit secrets
-openai.api_key = st.secrets["OPENAI_API_KEY"]
-
-# Function to generate a brand name
+# --- BRAND NAME GENERATOR FUNCTION ---
 def generate_brand_name(prompt):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or gpt-4o if you have access
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a branding expert. Suggest 3 short, creative brand names."},
+                {"role": "system", "content": "You're a branding expert. Suggest 3 short, catchy brand names."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.8,
             max_tokens=100
         )
-        return response['choices'][0]['message']['content'].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        return f"Error: {e}"
+        return f"❌ OpenAI Error: {str(e)}"
 
-# Function to generate a basic logo image
+# --- LOGO IMAGE GENERATOR FUNCTION ---
 def generate_logo_image(text):
-    img = Image.new("RGB", (400, 200), color="#0a0a0a")
+    img = Image.new('RGB', (512, 512), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
 
-    # Use a built-in font
+    # Try to use a nice font, fallback to default
     try:
-        font = ImageFont.truetype("arial.ttf", 40)
+        font = ImageFont.truetype("arial.ttf", 60)
     except:
         font = ImageFont.load_default()
 
-    text_width, text_height = draw.textsize(text, font=font)
-    position = ((400 - text_width) / 2, (200 - text_height) / 2)
+    # Calculate text size with textbbox (Pillow ≥10)
+    bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
 
-    draw.text(position, text, font=font, fill=(255, 255, 255))
+    position = ((512 - text_width) // 2, (512 - text_height) // 2)
+    draw.text(position, text, fill=(0, 0, 0), font=font)
+
     return img
 
-# --- Streamlit UI ---
+# --- STREAMLIT UI ---
 st.title("🧠 Build Your Brand")
 st.subheader("Get a unique brand name & logo instantly")
 
-# Brand prompt
-brand_description = st.text_input("Describe your brand or niche (e.g. gaming, fashion, eco-friendly skincare):")
+user_prompt = st.text_input("Describe your brand or niche (e.g. gaming, fashion, eco-friendly skincare):")
 
-if st.button("Generate Brand Kit") and brand_description:
-    with st.spinner("Thinking of great brand ideas..."):
-        names = generate_brand_name(brand_description)
+if st.button("✨ Generate Brand"):
+    if not user_prompt.strip():
+        st.warning("Please enter something first.")
+    else:
+        with st.spinner("Generating brand name..."):
+            result = generate_brand_name(user_prompt)
 
-    st.markdown("### 🏷️ Brand Name Ideas")
-    st.write(names)
+            st.markdown("### 🏷️ Brand Name Ideas")
+            st.success(result)
 
-    # Generate logo using the first name only
-    first_name = names.splitlines()[0].strip("-•123. ").split(" ")[0]
-    logo_image = generate_logo_image(first_name)
+            first_name = result.split('\n')[0].strip("1234567890.:- ").split()[0]
 
-    st.markdown("### 🖼️ Logo Example")
-    st.image(logo_image, caption=f"Logo Preview for '{first_name}'", use_column_width=True)
+            st.markdown("### 🎨 Auto-Generated Logo")
+            logo_image = generate_logo_image(first_name)
+            st.image(logo_image, caption=f"Logo for '{first_name}'", use_column_width=True)
 
-    # Allow download
-    buffer = io.BytesIO()
-    logo_image.save(buffer, format="PNG")
-    st.download_button("Download Logo", data=buffer.getvalue(), file_name=f"{first_name}_logo.png", mime="image/png")
+            # Optional: Download button
+            img_byte_arr = io.BytesIO()
+            logo_image.save(img_byte_arr, format='PNG')
+            st.download_button("⬇️ Download Logo", data=img_byte_arr.getvalue(), file_name=f"{first_name}_logo.png", mime="image/png")
