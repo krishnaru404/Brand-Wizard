@@ -1,90 +1,61 @@
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFont
-import io
+from faker import Faker
 import random
 
-st.set_page_config(page_title="Brand Wizard", page_icon="🧠")
+fake = Faker()
+
+st.set_page_config(page_title="🧠 Build Your Brand", layout="centered")
+
 st.title("🧠 Build Your Brand")
-st.write("Get your unique brand name, logo, bio, and more instantly!")
+st.caption("Generate random brand names, bios, and taglines instantly!")
 
-# --- User Input ---
-prompt = st.text_input("📌 Describe your brand or niche (e.g. gaming, fashion, skincare):", "")
+st.markdown("### 🔍 What's your niche or style?")
+niche = st.text_input("e.g. gaming, skincare, fashion, productivity", "")
 
-# --- Helpers ---
-def generate_brand_names(prompt):
-    prompt = prompt.lower()
-    if "game" in prompt:
-        return ["PixelRush", "GameNova", "ShadowCore"]
-    elif "fashion" in prompt:
-        return ["StyleHive", "ModaMuse", "Trendora"]
-    elif "tech" in prompt:
-        return ["TechNest", "VoltEdge", "NexaBit"]
-    elif "mobile" in prompt:
-        return ["Mobify", "PocketNova", "QuickCell"]
+st.markdown("---")
+
+if st.button("🎲 Generate Brand Kit"):
+    if not niche:
+        st.warning("Please enter a niche or style!")
     else:
-        return ["Brandly", "EchoCraft", "NamoZen"]
+        # 🔤 Brand Name Generator
+        name_prefix = ["Zen", "Nova", "Pixel", "Eco", "Meta", "Bright", "Hyper", "Snap", "Vibe", "Neo"]
+        name_suffix = ["Labs", "Wave", "Zone", "Verse", "Core", "Nest", "Hive", "World", "Net", "Gen"]
+        brand_name = f"{random.choice(name_prefix)}{random.choice(name_suffix)}"
 
-def generate_logo_image(text):
-    img = Image.new("RGB", (500, 300), color=random.choice(["#1E1E1E", "#111827", "#202124"]))
-    draw = ImageDraw.Draw(img)
-    try:
-        font = ImageFont.truetype("arial.ttf", 60)
-    except:
-        font = ImageFont.load_default()
-    color = random.choice(["#00FFB7", "#FFD700", "#FF6F61", "#00D1FF", "#90EE90"])
-    draw.text((50, 120), text, fill=color, font=font)
-    return img
+        # 💬 Bio Generator
+        bios = [
+            f"{niche.capitalize()} lover | Building dreams one step at a time.",
+            f"Exploring the world of {niche}.",
+            f"Crafting cool things in the {niche} space.",
+            f"Where {niche} meets creativity ✨",
+            f"Your daily dose of {niche} goodness.",
+            f"{niche.capitalize()} + passion = 🚀",
+            f"Creating a wave in the {niche} world 🌊",
+            fake.catch_phrase(),  # bonus random bio
+        ]
+        brand_bio = random.choice(bios)
 
-def generate_bio(prompt, brand_name):
-    return f"{brand_name} is a modern brand inspired by {prompt}. Built to stand out, connect emotionally, and grow fast."
+        # 🎯 Tagline Generator
+        taglines = [
+            f"{brand_name} – Your {niche} Companion.",
+            f"Power up your {niche} journey with {brand_name}.",
+            f"Redefining {niche}, the {brand_name} way.",
+            f"{brand_name}: Think {niche}, Think Innovation.",
+            f"Where {niche} meets bold design.",
+            fake.bs().capitalize(),  # bonus random
+        ]
+        brand_tagline = random.choice(taglines)
 
-def generate_colors():
-    return random.sample(["#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9", "#92A8D1", "#955251", "#B565A7", "#009B77"], 3)
+        # 📦 Output
+        st.markdown("### 🏷️ Brand Name")
+        st.success(brand_name)
 
-def generate_handles(brand_name):
-    username = brand_name.lower()
-    return {
-        "Instagram": f"@{username}_official",
-        "Twitter": f"@{username}_hq",
-        "YouTube": f"{username}tv"
-    }
+        st.markdown("### 🧬 Bio")
+        st.info(brand_bio)
 
-# --- Main Action ---
-if st.button("🚀 Generate"):
-    if prompt.strip() == "":
-        st.warning("Please describe your brand first.")
-    else:
-        st.subheader("🏷️ Brand Name Ideas")
-        names = generate_brand_names(prompt)
-        st.write("\n".join([f"{i+1}. {name}" for i, name in enumerate(names)]))
+        st.markdown("### 💡 Tagline / Slogan")
+        st.code(brand_tagline)
 
-        # First name used for logo + other sections
-        selected_name = names[0]
-
-        # --- Logo ---
-        st.subheader("🎨 Auto-Generated Logo")
-        logo = generate_logo_image(selected_name)
-        st.image(logo, caption=f"Logo for '{selected_name}'", use_container_width=True)
-
-        # Download Button
-        buf = io.BytesIO()
-        logo.save(buf, format="PNG")
-        st.download_button("📥 Download Logo", buf.getvalue(), file_name=f"{selected_name}_logo.png", mime="image/png")
-
-        # --- Bio ---
-        st.subheader("📝 Brand Bio")
-        st.success(generate_bio(prompt, selected_name))
-
-        # --- Color Palette ---
-        st.subheader("🌈 Brand Colors")
-        colors = generate_colors()
-        cols = st.columns(3)
-        for i, c in enumerate(colors):
-            with cols[i]:
-                st.color_picker(f"Color {i+1}", c, label_visibility="collapsed")
-
-        # --- Social Media Handle Ideas ---
-        st.subheader("📱 Social Media Handles")
-        handles = generate_handles(selected_name)
-        for platform, handle in handles.items():
-            st.write(f"**{platform}:** {handle}")
+        st.markdown("---")
+        st.markdown("🌀 *Click again for new ideas!*")
